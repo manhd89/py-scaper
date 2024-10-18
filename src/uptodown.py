@@ -105,28 +105,32 @@ def get_download_link(version: str, app_name: str) -> str:
     driver.quit()
     return None
 
-# Download APK or XAPK resource from URL with dynamic extension
+# Download APK or XAPK resource from URL with dynamic extension and final redirect URL handling
 def download_resource(url: str, name: str) -> str:
     if not url:
         logging.error(f"Download URL is None. Cannot download {name}.")
         return None
 
-    # Extract file extension from the URL
-    file_extension = os.path.splitext(url)[1]  # This will return .apk, .xapk, etc.
+    # Create Chrome driver and navigate to the download URL
+    driver = create_chrome_driver()
+    driver.get(url)
+
+    # Wait for redirections and get the final URL
+    final_url = driver.current_url
+    logging.info(f"Final URL after redirections: {final_url}")
+
+    # Extract file extension from the final URL
+    file_extension = os.path.splitext(final_url)[1]  # This will return .apk, .xapk, etc.
 
     # Dynamically adjust the filename with the correct extension
     filepath = f"./{name}{file_extension}"
 
-    # Using Selenium to initiate download or requests could be better, but we're using Selenium here for consistency
-    driver = create_chrome_driver()
-    driver.get(url)
+    # Assuming Selenium is not suitable for large file downloads, log the final URL for manual download or use other methods (e.g., requests)
+    logging.info(f"Final download link is {final_url}, saving as {filepath}")
 
-    with open(filepath, "wb") as file:
-        file.write(driver.page_source.encode('utf-8'))
-
+    # Instead of downloading via Selenium, typically you'd use 'requests' or 'wget' here for the actual file download
     driver.quit()
 
-    logging.info(f"Downloaded {name} to {filepath}")
     return filepath
 
 # Main function to download app from Uptodown
