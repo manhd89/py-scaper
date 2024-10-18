@@ -127,9 +127,39 @@ def download_resource(url: str, name: str) -> str:
     return filepath
 
 # Main function to download app from Uptodown
-def download_uptodown(app_name: str) -> str:
-    version = "19.33.35"
-    #version = get_latest_version(app_name)
-    download_link = get_download_link(version, app_name)
-    filename = f"{app_name}-v{version}"
-    return download_resource(download_link, filename)
+import json
+import os
+import urllib.parse
+import requests  # Assuming you're using requests to handle the download process
+
+def download_resource(download_link, filename):
+    # Perform a request to get the final URL that the download link redirects to
+    response = requests.get(download_link, stream=True)
+    
+    # Capture the final URL after redirection (if there's any)
+    final_url = response.url
+    
+    # Extract the file extension from the final URL
+    parsed_url = urllib.parse.urlparse(final_url)
+    extension = os.path.splitext(parsed_url.path)[1]  # Extract the extension, e.g., .apk or .xapk
+    
+    # Adjust the filename with the correct extension
+    final_filename = f"{os.path.splitext(filename)[0]}{extension}"
+    
+    # Download and save the file with the correct filename
+    with open(final_filename, 'wb') as f:
+        for chunk in response.iter_content(chunk_size=8192):
+            f.write(chunk)
+    
+    return final_filename  # Return the final saved file path
+
+def download_uptodown():
+        version = "19.33.35"
+        download_link = get_download_link(version)
+        
+        # Create a default filename, we'll update the extension later
+        filename = f"youtube-v{version}.apk"  # Initially assume .apk, but this will change
+        
+        # Call the download resource function, which handles redirection and saving the file
+        file_path = download_resource(download_link, filename)
+        return file_path, version  # Return both the final file path and version
