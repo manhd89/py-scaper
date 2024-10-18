@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import requests
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import NoSuchElementException
@@ -18,7 +19,6 @@ def create_chrome_driver():
     chrome_options.add_argument("--headless")  # Run in headless mode
     chrome_options.add_argument("--no-sandbox")  # Bypass sandbox mode
     chrome_options.add_argument("--disable-dev-shm-usage")  # Overcome limited resource problems
-    chrome_options.add_argument("--remote-debugging-port=9222")  # Configure remote debugging
     chrome_options.add_argument("start-maximized")  # Maximize window
     chrome_options.add_argument("disable-infobars")  # Disable infobars
     chrome_options.add_argument("--disable-extensions")  # Disable extensions
@@ -95,8 +95,14 @@ def get_download_link(version: str, app_name: str) -> str:
                     data_url = download_button.get('data-url')
                     full_url = f"https://dw.uptodown.com/dwn/{data_url}"
                     logging.info(f"Found download link: {full_url}")
-                    driver.quit()
-                    return full_url
+
+                    # Get the final download URL from the server response
+                    response = requests.get(full_url)
+                    if response.status_code == 200:
+                        download_url = response.url  # Get the URL from the response
+                        logging.info(f"Final download URL: {download_url}")
+                        driver.quit()
+                        return download_url
 
         # If the "See more" button is available, click to load more versions
         click_see_more(driver)
@@ -105,18 +111,15 @@ def get_download_link(version: str, app_name: str) -> str:
     driver.quit()
     return None
 
-# Download APK or XAPK resource from URL with dynamic extension and final redirect URL handling
+# Download APK or XAPK resource from URL using requests
 def download_resource(url: str, name: str) -> str:
     if not url:
         logging.error(f"Download URL is None. Cannot download {name}.")
         return None
 
-    # Create Chrome driver and navigate to the download URL
-    driver = create_chrome_driver()
-    driver.get(url)
-
-    # Wait for redirections and get the final URL
-    final_url = driver.current_url
+    # Use requests to get the final URL after redirections
+    response = requests.get(url, allow_redirects=True)
+    final_url = response.url
     logging.info(f"Final URL after redirections: {final_url}")
 
     # Extract file extension from the final URL
@@ -125,12 +128,17 @@ def download_resource(url: str, name: str) -> str:
     # Dynamically adjust the filename with the correct extension
     filepath = f"./{name}{file_extension}"
 
-    # Assuming Selenium is not suitable for large file downloads, log the final URL for manual download or use other methods (e.g., requests)
-    logging.info(f"Final download link is {final_url}, saving as {filepath}")
+    # Now download the file using requests
+    logging.info(f"Downloading the file from {final_url} to {filepath}")
 
-    # Instead of downloading via Selenium, typically you'd use 'requests' or 'wget' here for the actual file download
-    driver.quit()
+    # Stream the download to avoid memory overload with large files
+    with requests.get(final_url, stream=True) as r:
+        r.raise_for_status()
+        with open(filepath, 'wb') as f:
+            for chunk in r.iter_content(chunk_size=8192):
+                f.write(chunk)
 
+    logging.info(f"Downloaded {name} to {filepath}")
     return filepath
 
 # Main function to download app from Uptodown
