@@ -12,5 +12,5 @@ from src.uptodown import download_uptodown
 #download_uptodown('soundcloud')
 download_apkmirror('youtube')
 download_apkmirror('youtube-music')
-download_apkmirror('x')
-download_apkmirror('soundcloud')
+#download_apkmirror('x')
+#download_apkmirror('soundcloud')
