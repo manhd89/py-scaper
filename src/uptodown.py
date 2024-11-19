@@ -31,41 +31,86 @@ def get_latest_version(app_name: str) -> str:
     return highest_version
 
 def get_download_link(version: str, app_name: str) -> str:
+    import json
+    import logging
+    from bs4 import BeautifulSoup
+
+    # Load configuration file
     conf_file_path = f'./apps/uptodown/{app_name}.json'
     with open(conf_file_path, 'r') as json_file:
         config = json.load(json_file)
-  
-    url = f"https://{config['name']}.en.uptodown.com/android/versions"
 
+    # Initial URL for the app's version list
+    url = f"https://{config['name']}.en.uptodown.com/android/versions"
     response = scraper.get(url)
     response.raise_for_status()
-    content_size = len(response.content)
-    logging.info(f"URL:{response.url} [{content_size}/{content_size}] -> \"-\" [1]")
+    logging.info(f"Fetched base URL: {url}")
+    
+    # Parse the data-code from the main page
     soup = BeautifulSoup(response.content, "html.parser")
     h1_tag = soup.find('h1', id='detail-app-name')
-    data_code = h1_tag.get('data-code')
-    logging.info(f"{data_code}")
-    page_url=f"https://{config['name']}.en.uptodown.com/android/apps/{data_code}/versions/1"
-    response = scraper.get(page_url)
-    response.raise_for_status()
-    exit(0)
-
-    for div in divs:
-        version_span = div.find("span", class_="version")
-        if version_span and version_span.text == version:
-            dl_url = div["data-url"]
-            response = scraper.get(dl_url)
-            response.raise_for_status()
-            content_size = len(response.content)
-            logging.info(f"URL:{response.url} [{content_size}/{content_size}] -> \"-\" [1]")
+    if not h1_tag or 'data-code' not in h1_tag.attrs:
+        logging.error("Failed to find `data-code` in the app's main page.")
+        return None
     
-            soup = BeautifulSoup(response.content, "html.parser")
-            button = soup.find('button', id='detail-download-button')
-            data_url = button['data-url']
-            if data_url:
-                full_url = "https://dw.uptodown.com/dwn/" + data_url
+    data_code = h1_tag['data-code']
+    logging.info(f"App data-code: {data_code}")
+    
+    # Loop through pages to find the desired version
+    page = 1
+    while True:
+        page_url = f"https://{config['name']}.en.uptodown.com/android/apps/{data_code}/versions/{page}"
+        response = scraper.get(page_url)
+        response.raise_for_status()
+        logging.info(f"Fetching page: {page_url}")
+        
+        # Parse JSON response to get version data
+        try:
+            json_data = response.json()
+            version_data = json_data.get('data', [])
+        except Exception as e:
+            logging.error(f"Failed to parse JSON from {page_url}: {e}")
+            return None
+        
+        # Search for the specified version in the current page
+        for entry in version_data:
+            if entry.get("version") == version and entry.get("kindFile") == "apk":
+                version_url = entry.get("versionURL")
+                if not version_url:
+                    logging.error(f"No version URL found for version {version}.")
+                    return None
+                
+                # Fetch the download link from the version URL
+                response = scraper.get(version_url)
+                response.raise_for_status()
+                soup = BeautifulSoup(response.content, "html.parser")
+                download_button = soup.find('button', id='detail-download-button')
+                
+                if not download_button or 'data-url' not in download_button.attrs:
+                    logging.error(f"No download button found for version {version}.")
+                    return None
+                
+                # Construct the full download URL
+                data_url = download_button['data-url']
+                full_url = f"https://dw.uptodown.com/dwn/{data_url}"
+                logging.info(f"Download link found: {full_url}")
                 return full_url
-
+        
+        # Check if all versions on the current page are older than the desired version
+        all_versions_lower = all(
+            entry.get("version") < version
+            for entry in version_data
+            if entry.get("kindFile") == "apk"
+        )
+        if all_versions_lower:
+            logging.info("No newer versions available. Stopping search.")
+            break
+        
+        # Move to the next page
+        page += 1
+    
+    # Return None if no matching version is found
+    logging.info(f"No matching version ({version}) found for {app_name}.")
     return None
 
 def download_resource(url: str, name: str) -> str:
