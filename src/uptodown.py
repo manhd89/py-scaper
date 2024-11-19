@@ -45,6 +45,8 @@ def get_download_link(version: str, app_name: str) -> str:
     h1_tag = soup.find('h1', id='detail-app-name')
     data_code = h1_tag.get('data-code')
     logging.info(f"{data_code}")
+    page_url=f"https://{config['name']}.en.uptodown.com/android/apps/{data_code}/versions/1"
+    page_json = scraper.get(page_url)
     exit(0)
 
     for div in divs:
