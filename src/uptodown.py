@@ -49,12 +49,8 @@ def get_download_link(version: str, app_name: str) -> str:
     # Parse the data-code from the main page
     soup = BeautifulSoup(response.content, "html.parser")
     h1_tag = soup.find('h1', id='detail-app-name')
-    if not h1_tag or 'data-code' not in h1_tag.attrs:
-        logging.error("Failed to find `data-code` in the app's main page.")
-        return None
     
     data_code = h1_tag['data-code']
-    logging.info(f"App data-code: {data_code}")
     
     # Loop through pages to find the desired version
     page = 1
@@ -74,11 +70,8 @@ def get_download_link(version: str, app_name: str) -> str:
         
         # Search for the specified version in the current page
         for entry in version_data:
-            if entry.get("version") == version and entry.get("kindFile") == "apk":
-                version_url = entry.get("versionURL")
-                if not version_url:
-                    logging.error(f"No version URL found for version {version}.")
-                    return None
+            if entry["version"] == version and entry["kindFile"] == "apk":
+                version_url = entry["versionURL"]
                 
                 # Fetch the download link from the version URL
                 response = scraper.get(version_url)
@@ -98,9 +91,9 @@ def get_download_link(version: str, app_name: str) -> str:
         
         # Check if all versions on the current page are older than the desired version
         all_versions_lower = all(
-            entry.get("version") < version
+            entry["version"] < version
             for entry in version_data
-            if entry.get("kindFile") == "apk"
+            if entry["kindFile"] == "apk"
         )
         if all_versions_lower:
             logging.info("No newer versions available. Stopping search.")
