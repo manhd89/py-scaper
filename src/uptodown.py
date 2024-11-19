@@ -42,7 +42,9 @@ def get_download_link(version: str, app_name: str) -> str:
     content_size = len(response.content)
     logging.info(f"URL:{response.url} [{content_size}/{content_size}] -> \"-\" [1]")
     soup = BeautifulSoup(response.content, "html.parser")
-    divs = soup.find_all("div", {"data-url": True})
+    divs = soup.find_all("detail-app-name")
+    logging.info(f"{divs}")
+    exit(0)
 
     for div in divs:
         version_span = div.find("span", class_="version")
