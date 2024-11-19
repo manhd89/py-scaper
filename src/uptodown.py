@@ -43,7 +43,8 @@ def get_download_link(version: str, app_name: str) -> str:
     logging.info(f"URL:{response.url} [{content_size}/{content_size}] -> \"-\" [1]")
     soup = BeautifulSoup(response.content, "html.parser")
     h1_tag = soup.find('h1', id='detail-app-name')
-    logging.info(f"{h1_tag}")
+    data_code = h1_tag.get('data-code')
+    logging.info(f"{data_code}")
     exit(0)
 
     for div in divs:
