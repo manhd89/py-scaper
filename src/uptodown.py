@@ -50,7 +50,7 @@ def get_download_link(version: str, app_name: str) -> str:
         
         for entry in version_data:
             if entry["version"] == version:
-                version_page = scraper.get(f"{entry['versionURL']}-x")
+                version_page = scraper.get(f"{entry['versionURL']}")
                 version_page.raise_for_status()
                 content_size = len(version_page.content)
                 logging.info(f"URL:{response.url} [{content_size}/{content_size}] -> \"-\" [1]")
