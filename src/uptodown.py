@@ -57,7 +57,7 @@ def get_download_link(version: str, app_name: str) -> str:
                 soup = BeautifulSoup(version_page.content, "html.parser")
                 data = soup.find('button', id='detail-download-button')
                 logging.info(f'{data}')
-                return
+                exit(0)
                 download_url = soup.find('button', id='detail-download-button')['data-url']
                 return f"https://dw.uptodown.com/dwn/{download_url}"
         
