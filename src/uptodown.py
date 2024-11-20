@@ -58,7 +58,7 @@ def get_download_link(version: str, app_name: str) -> str:
                 # Check for button type
                 button = soup.find('button', id='detail-download-button')
                 if "download-link-deeplink" in button['onclick']:
-                    # Update versionURL by adding '-x'
+                    # Fetch updated page with '-x' in URL
                     version_url += '-x'
                     version_page = scraper.get(version_url)
                     version_page.raise_for_status()
