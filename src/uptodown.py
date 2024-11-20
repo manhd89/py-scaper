@@ -31,61 +31,35 @@ def get_latest_version(app_name: str) -> str:
     return highest_version
 
 def get_download_link(version: str, app_name: str) -> str:
-    # Load configuration file
-    conf_file_path = f'./apps/uptodown/{app_name}.json'
-    with open(conf_file_path, 'r') as json_file:
-        config = json.load(json_file)
+    # Load configuration
+    with open(f'./apps/uptodown/{app_name}.json', 'r') as file:
+        config = json.load(file)
 
-    # Initial URL for the app's version list
-    url = f"https://{config['name']}.en.uptodown.com/android/versions"
-    response = scraper.get(url)
+    base_url = f"https://{config['name']}.en.uptodown.com/android"
+    response = scraper.get(f"{base_url}/versions")
     response.raise_for_status()
     
-    # Parse the data-code from the main page
     soup = BeautifulSoup(response.content, "html.parser")
-    h1_tag = soup.find('h1', id='detail-app-name')
-    
-    data_code = h1_tag['data-code']
-    
-    # Loop through pages to find the desired version
+    data_code = soup.find('h1', id='detail-app-name')['data-code']
+
     page = 1
     while True:
-        page_url = f"https://{config['name']}.en.uptodown.com/android/apps/{data_code}/versions/{page}"
-        response = scraper.get(page_url)
+        response = scraper.get(f"{base_url}/apps/{data_code}/versions/{page}")
         response.raise_for_status()
+        version_data = response.json().get('data', [])
         
-        # Parse JSON response to get version data
-        json_data = response.json()
-        version_data = json_data['data'] or []
-        
-        # Search for the specified version in the current page
         for entry in version_data:
             if entry["version"] == version:
-                version_url = entry["versionURL"]
-                
-                # Fetch the download link from the version URL
-                response = scraper.get(version_url)
-                response.raise_for_status()
-                soup = BeautifulSoup(response.content, "html.parser")
-                download_button = soup.find('button', id='detail-download-button')
-                
-                # Construct the full download URL
-                data_url = download_button['data-url']
-                full_url = f"https://dw.uptodown.com/dwn/{data_url}"
-                return full_url
+                version_page = scraper.get(entry["versionURL"])
+                version_page.raise_for_status()
+                soup = BeautifulSoup(version_page.content, "html.parser")
+                download_url = soup.find('button', id='detail-download-button')['data-url']
+                return f"https://dw.uptodown.com/dwn/{download_url}"
         
-        # Check if all versions on the current page are older than the desired version
-        all_versions_lower = all(
-            entry["version"] < version
-            for entry in version_data
-        )
-        if all_versions_lower:
+        if all(entry["version"] < version for entry in version_data):
             break
-        
-        # Move to the next page
         page += 1
-    
-    # Return None if no matching version is found
+
     return None
 
 def download_resource(url: str, name: str) -> str:
