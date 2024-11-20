@@ -58,22 +58,20 @@ def get_download_link(version: str, app_name: str) -> str:
         page_url = f"https://{config['name']}.en.uptodown.com/android/apps/{data_code}/versions/{page}"
         response = scraper.get(page_url)
         response.raise_for_status()
-        logging.info(f"Fetching page: {page_url}")
         
         # Parse JSON response to get version data
         try:
             json_data = response.json()
-            version_data = json_data.get('data', [])
+            version_data = json_data['data'] or []
         except Exception as e:
             logging.error(f"Failed to parse JSON from {page_url}: {e}")
             return None
         
         # Search for the specified version in the current page
         for entry in version_data:
-            if entry.get("version") == version:
-                version_url = entry.get("versionURL")
+            if entry["version"] == version:
+                version_url = entry["versionURL"]
                 if not version_url:
-                    logging.error(f"No version URL found for version {version}.")
                     return None
                 
                 # Fetch the download link from the version URL
@@ -82,30 +80,23 @@ def get_download_link(version: str, app_name: str) -> str:
                 soup = BeautifulSoup(response.content, "html.parser")
                 download_button = soup.find('button', id='detail-download-button')
                 
-                if not download_button or 'data-url' not in download_button.attrs:
-                    logging.error(f"No download button found for version {version}.")
-                    return None
-                
                 # Construct the full download URL
                 data_url = download_button['data-url']
                 full_url = f"https://dw.uptodown.com/dwn/{data_url}"
-                logging.info(f"Download link found: {full_url}")
                 return full_url
         
         # Check if all versions on the current page are older than the desired version
         all_versions_lower = all(
-            entry.get("version") < version
+            entry["version"] < version
             for entry in version_data
         )
         if all_versions_lower:
-            logging.info("No newer versions available. Stopping search.")
             break
         
         # Move to the next page
         page += 1
     
     # Return None if no matching version is found
-    logging.info(f"No matching version ({version}) found for {app_name}.")
     return None
 
 def download_resource(url: str, name: str) -> str:
