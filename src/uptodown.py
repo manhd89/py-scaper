@@ -45,9 +45,6 @@ def get_download_link(version: str, app_name: str) -> str:
     # Parse the data-code from the main page
     soup = BeautifulSoup(response.content, "html.parser")
     h1_tag = soup.find('h1', id='detail-app-name')
-    if not h1_tag or 'data-code' not in h1_tag.attrs:
-        logging.error("Failed to find `data-code` in the app's main page.")
-        return None
     
     data_code = h1_tag['data-code']
     logging.info(f"App data-code: {data_code}")
