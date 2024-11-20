@@ -50,8 +50,7 @@ def get_download_link(version: str, app_name: str) -> str:
         
         for entry in version_data:
             if entry["version"] == version:
-                version_page_url = f"{entry['versionURL']}-x"
-                version_page = scraper.get(version_page_url)
+                version_page = scraper.get(f"{entry['versionURL']}-x")
                 version_page.raise_for_status()
                 soup = BeautifulSoup(version_page.content, "html.parser")
                 download_url = soup.find('button', id='detail-download-button')['data-url']
