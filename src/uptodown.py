@@ -40,14 +40,12 @@ def get_download_link(version: str, app_name: str) -> str:
     url = f"https://{config['name']}.en.uptodown.com/android/versions"
     response = scraper.get(url)
     response.raise_for_status()
-    logging.info(f"Fetched base URL: {url}")
     
     # Parse the data-code from the main page
     soup = BeautifulSoup(response.content, "html.parser")
     h1_tag = soup.find('h1', id='detail-app-name')
     
     data_code = h1_tag['data-code']
-    logging.info(f"App data-code: {data_code}")
     
     # Loop through pages to find the desired version
     page = 1
@@ -57,19 +55,13 @@ def get_download_link(version: str, app_name: str) -> str:
         response.raise_for_status()
         
         # Parse JSON response to get version data
-        try:
-            json_data = response.json()
-            version_data = json_data['data'] or []
-        except Exception as e:
-            logging.error(f"Failed to parse JSON from {page_url}: {e}")
-            return None
+        json_data = response.json()
+        version_data = json_data['data'] or []
         
         # Search for the specified version in the current page
         for entry in version_data:
             if entry["version"] == version:
                 version_url = entry["versionURL"]
-                if not version_url:
-                    return None
                 
                 # Fetch the download link from the version URL
                 response = scraper.get(version_url)
