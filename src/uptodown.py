@@ -57,7 +57,6 @@ def get_download_link(version: str, app_name: str) -> str:
                 soup = BeautifulSoup(version_page.content, "html.parser")
                 data = soup.find('button', id='detail-download-button')
                 logging.info(f'{data}')
-                exit(0)
                 download_url = soup.find('button', id='detail-download-button')['data-url']
                 return f"https://dw.uptodown.com/dwn/{download_url}"
         
@@ -97,5 +96,6 @@ def download_uptodown(app_name: str) -> str:
     if not version:
         version = get_latest_version(app_name)
     download_link = get_download_link(version, app_name)
-    filename = f"{app_name}-v{version}.apk"
-    return download_resource(download_link, filename)
+    return
+    #filename = f"{app_name}-v{version}.apk"
+    #return download_resource(download_link, filename)
